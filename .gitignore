@@ -1,0 +1,35 @@
+# Build and binary artifacts
+build/
+bin/
+*.o
+*.so
+*.a
+*.dSYM/
+
+# Python virtual environment and caches
+venv/
+.venv/
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
+# Large datasets and temporary files
+data/raw/
+data/decompressed/
+data/samples/
+*.tmp
+*.xz
+*.tar.gz
+
+# Temporary benchmark and dump outputs
+results/dumps/
+*.dump.csv
+results/*.tmp
+
+# IDE and OS metadata
+.vscode/
+.idea/
+.DS_Store
+*.swp
+*~
