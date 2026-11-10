@@ -1,0 +1,64 @@
+{
+  "01_plain_english.txt": {
+    "apple": 3,
+    "banana": 2,
+    "cherry": 1
+  },
+  "02_mixed_case.txt": {
+    "hello": 3,
+    "world": 2
+  },
+  "03_hashtags.txt": {
+    "#urdu": 2,
+    "#pdc2026": 1,
+    "100": 1,
+    "#100": 1
+  },
+  "04_urdu_punctuation.txt": {
+    "کتاب": 2,
+    "قلم": 1,
+    "کاپی": 1
+  },
+  "05_arabic_diacritics.txt": {
+    "کتاب": 4
+  },
+  "06_joiners.txt": {
+    "دلچسپ": 4
+  },
+  "07_yeh_kaf_mapping.txt": {
+    "کتاب": 2,
+    "یہ": 2
+  },
+  "08_roman_urdu.txt": {
+    "haal": 2,
+    "kya": 2,
+    "bhai": 1,
+    "hai": 1
+  },
+  "09_long_tokens.txt": {
+    "short": 2
+  },
+  "10_invalid_utf8.txt": {
+    "valid": 3,
+    "overlong": 1,
+    "surrogate": 1
+  },
+  "11_empty_lines.txt": {
+    "word": 2
+  },
+  "12_crlf_windows.txt": {
+    "line1": 2,
+    "line2": 1
+  },
+  "13_missing_final_newline.txt": {
+    "second": 2,
+    "first": 1
+  },
+  "14_single_token.txt": {
+    "solitary": 1
+  },
+  "15_multibyte_boundary.txt": {
+    "پاکستان": 2,
+    "#پاکستان": 1
+  }
+}
