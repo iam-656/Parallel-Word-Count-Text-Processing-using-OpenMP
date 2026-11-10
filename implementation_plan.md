@@ -13,7 +13,7 @@
   - **Machine:** HP EliteBook 820 G4, Fedora Linux 44
   - **CPU:** Intel Core i5-7300U @ 2.60GHz (1 socket, 2 physical cores, 2 threads per core = 4 logical CPUs)
   - **CPU Scaling Governor:** Confirmed set to `performance` on all cores (`/sys/devices/system/cpu/cpu*/cpufreq/scaling_governor`).
-  - **RAM:** 16 GB (hard limit of 12 GB enforced by polling peak RSS from `/proc/[pid]/statm` / `getrusage`, NOT `ulimit -v`).
+  - **RAM:** 16 GB (hard limit of 12 GB enforced by polling peak `VmHWM` in `/proc/<pid>/status`; report `ru_maxrss` via `getrusage` after each run).
   - **Storage:** Local NVMe SSD (`/dev/nvme0n1p3` mounted on `/home`), **408 GB available** (well above the 20 GB safety threshold).
   - **Project Directory:** `/home/iamblitz/Documents/PDC_Parallel_Keyword_and_Trend_Analyzer`
   - **Expected Scaling:** Strong scaling expected to level off around 2.0× to 2.5× due to 2 physical cores and hyper-threading limits; Karp-Flatt analysis and stage breakdown will accurately document and explain this behavior.
@@ -22,13 +22,14 @@
 
 ## 2. Operating Constraints & Rules of Engagement
 
-1. **No Code / No Downloads Prior to Approval:** Approved by user on 2026-11-11; proceeding directly to Phase 1.
+1. **No Code / No Downloads Prior to Approval:** Approved by user on 2026-11-11; proceeding through phases systematically.
 2. **Strict Non-Root Policy:** `sudo` will never be used. If any tool/library is missing, the exact Fedora `dnf` command will be provided to the user.
 3. **Workspace Boundary:** All writes remain within `/home/iamblitz/Documents/PDC_Parallel_Keyword_and_Trend_Analyzer`.
 4. **Data Integrity & Traceability:** No numbers in reports will be fabricated or hand-waved. Every metric is tied to a reproducible results CSV row. Failed runs and outliers will be recorded with notes.
 5. **Code Originality & Clarity:** Code will be original, cleanly structured, and thoroughly commented to ensure every team member can explain every line in the viva examination.
-6. **Data Structure Strategy:** Start with standard `std::unordered_map<std::string, uint64_t>` to establish a clean, idiomatic baseline before profiling.
-7. **Git Version Control & Audit Trail:** A dated log file (`docs/work_log.md`) will record all decisions and commands; a Git commit will follow the successful completion of each phase. Ignore `data/samples/`, `data/raw/`, `data/decompressed/`, `venv/`, `build/`, `bin/`, and temporary results in `.gitignore`.
+6. **False Sharing Defense Hierarchy:** In the code walkthrough and viva guide, credit **private per-thread hash tables as the primary defense against false sharing**, and `alignas(64)` cache-line alignment of thread metadata as a secondary measure.
+7. **Data Structure Strategy:** Start with standard `std::unordered_map<std::string, uint64_t>` to establish a clean, idiomatic baseline before profiling.
+8. **Git Version Control & Audit Trail:** A dated log file (`docs/work_log.md`) records all decisions and commands; a Git commit follows the successful completion of each phase. Ignore `data/samples/`, `data/raw/`, `data/decompressed/`, `venv/`, `build/`, `bin/`, and temporary results in `.gitignore`.
 
 ---
 
@@ -45,7 +46,7 @@ flowchart TD
     G3 --> P4["Phase 4: Serial C++ Engine (std::unordered_map)"]
     P4 --> G4{"Gate 4: Serial Matches Reference & ASan/UBSan Clean"}
     G4 --> P5["Phase 5: OpenMP Implementations (User Reduction & Critical)"]
-    P5 --> G5{"Gate 5: Parallel Matches Serial on 50 MB Samples"}
+    P5 --> G5{"Gate 5: Parallel Correctness on 50MB & Speedup on 1GB"}
     G5 --> P6["Phase 6: Benchmarks & Performance Analysis"]
     P6 --> CP2["Checkpoint 2: Calibration & Power Check"]
     CP2 --> G6{"Gate 6: E1-E6 Completed & Required Columns Populated"}
@@ -55,33 +56,15 @@ flowchart TD
 
 ---
 
-### Phase 1: Setup & Environment Initialization
+### Phase 1: Setup & Environment Initialization (Completed)
 
-#### Tasks
-1. Initialize local Git repository in `/home/iamblitz/Documents/PDC_Parallel_Keyword_and_Trend_Analyzer`.
-2. Configure `.gitignore`:
-   - Ignore `data/raw/`, `data/decompressed/`, `data/samples/`, `venv/`, `build/`, `bin/`, `*.tmp`, and benchmark dumps.
-3. Verify toolchain versions:
-   - GCC/G++ (`g++ 16.2.1`), OpenMP support (`-fopenmp`), Python (`3.14.10`), `fincore` (from `util-linux 2.41.6`), `git`, `make`.
-4. Create organized directory structure:
-   - `src/` (C++ source files: CLI driver, tokenizer, hash table, reduction, file reader)
-   - `include/` (C++ header files)
-   - `python/` (Python reference implementation, dataset preparation scripts)
-   - `tests/` (15 hand-checked test fixtures, expected outputs, automated test runner)
-   - `benchmarks/` (Benchmark runner, plotting scripts)
-   - `docs/` (Specification, work log, environment dump, data report, report drafts)
-   - `data/samples/` (50 MB dev/test samples; git-ignored)
-   - `results/` (CSV logs, generated plots)
-5. Create environment report file `docs/environment.md`:
-   - Record `lscpu`, compiler flags, kernel version, RAM details, thread pinning defaults (`OMP_PROC_BIND=close`, `OMP_PLACES=threads`).
-   - Record governor state (`performance` verified from `/sys/devices/system/cpu/cpu*/cpufreq/scaling_governor`).
-   - Check `powerprofilesctl get` (if missing, note package `power-profiles-daemon` or sysfs confirmation).
-6. Create initial audit log `docs/work_log.md`.
-7. Compile and run a minimal OpenMP hello/reduction sanity program to confirm OpenMP threading and compiler flags.
-
-#### Verification Gate 1
-- Minimal OpenMP test program compiles with `-fopenmp -O3 -Wall -Wextra`, runs across 4 threads, and reports correct thread IDs and reduction sum.
-- Git repository clean with initial commit.
+- Git repository initialized at `/home/iamblitz/Documents/PDC_Parallel_Keyword_and_Trend_Analyzer`.
+- `.gitignore` configured to ignore `data/raw/`, `data/decompressed/`, `data/samples/`, `venv/`, `build/`, `bin/`.
+- Toolchain verified: GCC 16.2.1, Python 3.14.10, `fincore` from util-linux 2.41.6.
+- CPU scaling governor verified as `performance` on all cores via sysfs.
+- Directory tree created (`src/`, `include/`, `python/`, `tests/`, `benchmarks/`, `docs/`, `data/`, `results/`, `bin/`, `build/`).
+- Initial audit log `docs/work_log.md` and environment dump `docs/environment.md` written.
+- **Verification Gate 1:** OpenMP test program compiled and verified across 4 threads with reduction arithmetic. Committed as `1ff2463`.
 
 ---
 
@@ -123,34 +106,36 @@ flowchart TD
   - **Hashtag Exception:** `#` (`0x23`) immediately followed by an ASCII letter/digit or non-ASCII token character is retained as part of the token. An isolated `#` is treated as a separator.
   - **Explicit Non-ASCII Separators:**
     - Non-breaking space (`U+00A0`)
+    - Unicode spaces: `U+2000` through `U+200A` (en quad through hair space)
+    - Guillemets: `U+00AB` (`«`) and `U+00BB` (`»`)
     - Arabic/Urdu punctuation: Arabic comma (`U+060C`), Arabic semicolon (`U+061B`), Arabic question mark (`U+061F`), Urdu full stop (`U+06D4`), Arabic percent sign (`U+066A`), Arabic decimal separator (`U+066B`), Arabic thousands separator (`U+066C`)
-    - General typographical punctuation: Typographic single/double quotes (`U+2018`, `U+2019`, `U+201A`, `U+201B`, `U+201C`, `U+201D`, `U+201E`, `U+201F`), dashes (en-dash `U+2013`, em-dash `U+2014`, horizontal bar `U+2015`), ellipsis (`U+2026`).
+    - General typographical punctuation: Typographic single/double quotes (`U+2018`–`U+201F`), dashes (en-dash `U+2013`, em-dash `U+2014`, horizontal bar `U+2015`), ellipsis (`U+2026`).
   - **Non-ASCII Token Characters:** Every other non-ASCII character (not explicitly listed as a separator or stripped) is strictly treated as a valid token character.
   - **Transparently Stripped (Ignored without splitting tokens):**
     - Zero-Width Non-Joiner (ZWNJ `U+200C`)
     - Zero-Width Joiner (ZWJ `U+200D`)
+    - Zero-Width Space (ZWSP `U+200B`)
+    - Word Joiner (WJ `U+2060`)
     - Byte Order Mark (BOM `U+FEFF`)
+    - Left-to-Right Mark (LRM `U+200E`)
+    - Right-to-Left Mark (RLM `U+200F`)
+    - Arabic Letter Mark (ALM `U+061C`)
     - Arabic diacritics / harakat (`U+064B` through `U+065F`, and `U+0670`)
   - **Normalization:**
     - ASCII uppercase `A-Z` $\to$ lowercase `a-z`.
     - Arabic Yeh (`U+064A`) $\to$ Urdu Yeh (`U+06CC`).
     - Arabic Kaf (`U+0643`) $\to$ Urdu Kaf (`U+06A9`).
-  - **Error Handling & Size Limits:**
-    - Invalid UTF-8 byte sequences are treated as word separators.
-    - Tokens strictly exceeding 64 bytes are skipped.
-  - **Counters:** 64-bit unsigned integers (`uint64_t`).
+  - **Strict UTF-8 Validation (RFC 3629 / Python equivalent):**
+    - Reject overlong encodings (2-byte $< \text{U+0080}$, 3-byte $< \text{U+0800}$, 4-byte $< \text{U+10000}$).
+    - Reject UTF-16 surrogates (`U+D800` through `U+DFFF`).
+    - Reject out-of-range values ($> \text{U+10FFFF}$, lead bytes `0xF5`–`0xFF`).
+    - Each maximal ill-formed sequence acts as **one separator**.
+    - An invalid byte sequence **never consumes a following valid ASCII byte**.
+  - **Limits & Counters:** Tokens exceeding 64 bytes skipped; 64-bit unsigned integer counters.
 
 #### 3.2 Canonical Checksum Formula
-To ensure deterministic, order-independent verification across serial and multi-threaded parallel runs without dumping multi-gigabyte files, we define **exactly one checksum formula**:
-1. For each normalized token string $w_k$, compute 64-bit FNV-1a hash:
-   $$\text{hash} = \text{0xcbf29ce484222325ULL}$$
-   $$\forall b \in w_k: \quad \text{hash} = (\text{hash} \oplus b) \times \text{0x100000001b3ULL}$$
-2. Mix the hash with the 64-bit word count $c_k$ using Murmur/SplitMix 64-bit constant:
-   $$\text{term}(w_k, c_k) = \text{hash} \oplus (c_k \times \text{0x9e3779b97f4a7c15ULL})$$
-3. The total table checksum is the commutative sum modulo $2^{64}$:
-   $$\text{Checksum} = \sum_{k=1}^{U} \text{term}(w_k, c_k) \pmod{2^{64}}$$
-
-Because addition modulo $2^{64}$ is commutative and associative, the checksum is strictly invariant to hash table iteration order.
+$$\text{term}(w_k, c_k) = \text{fnv1a64}(w_k) \oplus (c_k \times \text{0x9e3779b97f4a7c15ULL})$$
+$$\text{Checksum} = \sum_{k=1}^{U} \text{term}(w_k, c_k) \pmod{2^{64}}$$
 
 #### 3.3 Hand-Checked Expected Outputs for All 15 Test Fixtures
 
@@ -159,21 +144,21 @@ Because addition modulo $2^{64}$ is commutative and associative, the checksum is
 | `01_plain_english.txt` | `apple banana apple cherry banana apple` | `apple: 3`, `banana: 2`, `cherry: 1` |
 | `02_mixed_case.txt` | `Hello hello HELLO World world` | `hello: 3`, `world: 2` |
 | `03_hashtags.txt` | `#urdu #PDC2026 # 100 #100 #urdu` | `#urdu: 2`, `#pdc2026: 1`, `100: 1`, `#100: 1` *(isolated `#` ignored)* |
-| `04_urdu_punctuation.txt` | `کتاب، قلم؛ کاپی؟ کتاب۔` | `کتاب: 2`, `قلم: 1`, `کاپی: 1` |
+| `04_urdu_punctuation.txt` | `«کتاب»، قلم؛ کاپی؟ کتاب۔` *(with guillemets U+00AB/U+00BB)* | `کتاب: 2`, `قلم: 1`, `کاپی: 1` |
 | `05_arabic_diacritics.txt` | `کِتَاب کَتَاب کُتّاب کتاب` *(with Kasrah, Fathah, Dammah, Shaddah)* | `کتاب: 4` *(all diacritics stripped transparently)* |
-| `06_joiners.txt` | `دل‌چسپ دل‍چسپ دلچسپ` *(ZWNJ U+200C and ZWJ U+200D)* | `دلچسپ: 3` *(joiners stripped without splitting)* |
+| `06_joiners.txt` | `دل‌چسپ دل‍چسپ دل​چسپ دلچسپ` *(with ZWNJ U+200C, ZWJ U+200D, ZWSP U+200B)* | `دلچسپ: 4` *(all joiners stripped without splitting)* |
 | `07_yeh_kaf_mapping.txt` | `كتاب يہ کتاب یہ` *(Arabic Kaf U+0643 + Arabic Yeh U+064A vs Urdu)* | `کتاب: 2`, `یہ: 2` *(normalized to Urdu Kaf U+06A9 & Urdu Yeh U+06CC)* |
 | `08_roman_urdu.txt` | `kya haal hai bhai kya haal` | `haal: 2`, `kya: 2`, `bhai: 1`, `hai: 1` |
 | `09_long_tokens.txt` | `short aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa (65 'a's) short` | `short: 2` *(65-byte token skipped)* |
-| `10_invalid_utf8.txt` | `valid \xFF\xFE invalid\x80token valid` | `valid: 2`, `invalid: 1`, `token: 1` *(invalid bytes act as delimiters)* |
-| `11_empty_lines.txt` | `\n\n\nword\n\n   \n\nword\n\n` | `word: 2` |
+| `10_invalid_utf8.txt` | `valid \xC0\x80overlong \xED\xA0\x80surrogate \xFFvalid valid` | `valid: 3`, `overlong: 1`, `surrogate: 1` *(overlongs/surrogates/FF act as separators, never consuming next ASCII byte)* |
+| `11_empty_lines.txt` | `\n\n\nword\u2003\u2009word\n\n` *(with em space U+2003, thin space U+2009)* | `word: 2` |
 | `12_crlf_windows.txt` | `line1\r\nline2\r\nline1\r\n` | `line1: 2`, `line2: 1` |
 | `13_missing_final_newline.txt` | `first second second` *(no trailing `\n`)* | `second: 2`, `first: 1` |
 | `14_single_token.txt` | `solitary` | `solitary: 1` |
-| `15_multibyte_boundary.txt` | `پاکستان، #پاکستان! پاکستان؟` | `پاکستان: 2`, `#پاکستان: 1` |
+| `15_multibyte_boundary.txt` | `\u200Eپاکستان،\u200F #پاکستان! \u061Cپاکستان؟` *(with LRM, RLM, ALM)* | `پاکستان: 2`, `#پاکستان: 1` *(marks stripped without splitting)* |
 
 #### 3.4 Python Reference & Automated Test Harness
-- Implement `python/reference_counter.py` strictly following the specification.
+- Implement `python/reference_counter.py` strictly following `docs/counting_rules.md`.
 - Implement `python/test_runner.py` to run all 15 fixtures and verify outputs against the hand-checked ground truth table.
 
 #### Verification Gate 3
@@ -186,7 +171,7 @@ Because addition modulo $2^{64}$ is commutative and associative, the checksum is
 
 #### Tasks
 1. Build core C++ modules in `src/` starting with standard, readable structures:
-   - `tokenizer.hpp` / `.cpp`: UTF-8 direct byte scanning tokenizer following `docs/counting_rules.md`. No heavy regex.
+   - `tokenizer.hpp` / `.cpp`: UTF-8 direct byte scanning tokenizer following `docs/counting_rules.md`.
    - `frequency_table.hpp`: Baseline implementation using `std::unordered_map<std::string, uint64_t>`.
    - `checksum.hpp`: Single canonical 64-bit checksum computation.
    - `output_writer.hpp`: Deterministic CSV output writer (sorted descending by count; ties broken lexicographically by raw UTF-8 bytes).
@@ -214,17 +199,17 @@ Because addition modulo $2^{64}$ is commutative and associative, the checksum is
 
 #### Tasks
 1. **Chunking Rule & OpenMP Loop Iterations:**
-   - The chunk size $C$ in bytes is configured independently of the thread count.
+   - Chunk size $C$ in bytes is configured independently of thread count.
    - Chunks constitute the iterations of an OpenMP parallel loop:
      `#pragma omp parallel for schedule(dynamic, 1) reduction(TableMerge:table)` (or `static, 1`, `guided, 1`).
    - Nominal boundary: $b = k \cdot C$.
-   - Boundary adjustment function `adjust(b)`:
-     - $\text{adjust}(0) = 0$.
-     - $\text{adjust}(\text{file\_size}) = \text{file\_size}$.
+   - Boundary adjustment function $\text{adjust}(b)$:
+     - If $b = 0$, $\text{adjust}(0) = 0$.
+     - If $b \ge \text{file\_size}$, $\text{adjust}(b) = \text{file\_size}$.
      - For $0 < b < \text{file\_size}$, $\text{adjust}(b)$ moves to the first byte position $p \ge b$ such that $\text{byte}[p - 1]$ is ASCII whitespace (`0x20`, `0x09`, `0x0A`, `0x0D`).
-     - Chunk $k$ strictly covers the byte slice:
+     - If no ASCII whitespace character exists in $[b, \text{file\_size})$, $\text{adjust}(b) = \text{file\_size}$.
+     - Chunk $k$ covers the byte slice:
        $$[\text{adjust}(k \cdot C), \; \text{adjust}((k + 1) \cdot C))$$
-   - Because whitespace bytes never appear as continuation bytes in UTF-8, this strictly partitions the byte stream without splitting words or characters.
 2. **Main Parallel Version: OpenMP User-Defined Reduction:**
    - Each thread counts into its own private `std::unordered_map<std::string, uint64_t>` kept on separate cache lines (`alignas(64)` structure) to prevent false sharing.
    - Combine thread tables using OpenMP User-Defined Reduction:
@@ -239,17 +224,18 @@ Because addition modulo $2^{64}$ is commutative and associative, the checksum is
 4. **Cache Control Verification:**
    - Use `fincore` to verify that `posix_fadvise(POSIX_FADV_DONTNEED)` successfully evicts file pages from page cache before cold-cache benchmark runs.
 5. **Memory Cap Enforcement:**
-   - Enforce the 12 GB memory limit by polling peak RSS from `/proc/[pid]/statm` / `getrusage`, NOT `ulimit -v`.
-6. Multi-thread correctness verification matrix:
+   - Enforce the 12 GB memory limit by polling `VmHWM` in `/proc/<pid>/status` during execution (terminate process if $> 12 \text{ GB}$); report `ru_maxrss` from `getrusage` after each run.
+6. **Multi-Thread Verification Matrix:**
    - Threads: 1, 2, 3, 4, 8
    - Chunk sizes: 64 KB, 1 MB, 16 MB
    - Schedules: `static`, `dynamic`, `guided`
-   - **Run on the 50 MB sample files.**
+   - **Run correctness matrix on the 50 MB sample files.**
+   - **Run Gate 5 speedup check on the 1 GB piece of the Urdu file.**
 
 #### Verification Gate 5
 - Word counts, top-N words, and canonical 64-bit checksums in `reduction` match `serial` bit-for-bit across all thread counts, schedules, and chunk sizes **on the 50 MB samples**.
 - ASan + UBSan build passes cleanly.
-- Parallel `reduction` at 2 threads demonstrates measurable speedup over `serial` ($S > 1.0\times$).
+- Parallel `reduction` at 2 threads demonstrates measurable speedup over `serial` ($S > 1.0\times$) **on the 1 GB piece**.
 
 ---
 
@@ -262,8 +248,8 @@ Because addition modulo $2^{64}$ is commutative and associative, the checksum is
    - Thread pinning: `OMP_PROC_BIND=close`, `OMP_PLACES=threads`.
    - Eviction verification with `fincore` for cold-cache runs.
    - 15-minute timeout per run.
-   - Enforce 12 GB memory cap by polling peak RSS.
-   - Record metrics: median time, minimum time, spread, speedup, efficiency (logical & 2-core physical), throughput (MB/s), peak memory (RSS via `getrusage`), and Karp-Flatt serial fraction.
+   - Enforce 12 GB memory cap by polling `VmHWM` in `/proc/<pid>/status`; report `ru_maxrss` after each run.
+   - Record metrics: median time, minimum time, spread, speedup, efficiency (logical & 2-core physical), throughput (MB/s), peak memory (RSS via `getrusage` and `VmHWM`), and Karp-Flatt serial fraction.
 2. Calibrate runtime and establish Primary Size:
    - Test 1 GB, 2 GB, 4 GB, full Urdu, and full combined dataset.
    - Select smallest input with serial runtime $\ge 60$ seconds as the Primary Size.
@@ -311,9 +297,9 @@ Run experiments E1 through E6:
    - Clear CLI documentation and options overview.
 2. Produce comprehensive code walkthrough `docs/code_walkthrough.md`:
    - Line-by-line explanation of core C++ modules.
-   - Deep dive into chunking boundary safety for UTF-8 (`adjust(k * C)` rule).
+   - Deep dive into chunking boundary safety for UTF-8 (`adjust(k * C)` rule with whitespace lookahead and EOF fallback).
    - Mechanics of the OpenMP user-defined reduction (`#pragma omp declare reduction`).
-   - Race condition prevention and cache-line separation (`alignas(64)`) to eliminate false sharing.
+   - **False sharing defense hierarchy:** Credit **private per-thread hash tables as the primary defense**, with `alignas(64)` cache-line alignment of thread metadata as a secondary measure.
    - Trade-offs between `static`, `dynamic`, and `guided` scheduling.
 3. Produce viva preparation guide `docs/viva_preparation.md`:
    - Minimum 25 anticipated viva examination questions with concise, technically rigorous answers tailored to this specific code and hardware.
