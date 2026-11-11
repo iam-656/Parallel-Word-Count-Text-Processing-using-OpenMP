@@ -1,0 +1,17 @@
+{
+  "sample_en.txt": {
+    "total_tokens": 8927118,
+    "unique_tokens": 120848,
+    "checksum": "0xfcba47316275e019"
+  },
+  "sample_ur.txt": {
+    "total_tokens": 6218925,
+    "unique_tokens": 121117,
+    "checksum": "0x0a6932987cb0432a"
+  },
+  "sample_ur_rom.txt": {
+    "total_tokens": 9171954,
+    "unique_tokens": 555427,
+    "checksum": "0x9bd596a5b0165b82"
+  }
+}

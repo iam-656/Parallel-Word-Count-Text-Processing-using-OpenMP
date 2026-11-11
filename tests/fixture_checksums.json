@@ -1,0 +1,18 @@
+{
+  "01_plain_english.txt": "0x838ee4b177cc5f27",
+  "02_mixed_case.txt": "0xf1cdc1978b0e3c0d",
+  "03_hashtags.txt": "0x694f13e484ff05d1",
+  "04_urdu_punctuation.txt": "0x997e7069d543e5f9",
+  "05_arabic_diacritics.txt": "0xa007f975e7a9b247",
+  "06_joiners.txt": "0x1f5882c4caad59a3",
+  "07_yeh_kaf_mapping.txt": "0x32bde2dfb838177d",
+  "08_roman_urdu.txt": "0x39d7beed5297e83f",
+  "09_long_tokens.txt": "0xcaffa63a0915357f",
+  "10_invalid_utf8.txt": "0xcc460969062b8a4e",
+  "11_empty_lines.txt": "0x4c360f84c8fcc717",
+  "12_crlf_windows.txt": "0x23620beb9ddf5802",
+  "13_missing_final_newline.txt": "0xb0d80b6498a039eb",
+  "14_single_token.txt": "0x39c42753f67763ff",
+  "15_multibyte_boundary.txt": "0xc9fefff0a969508a",
+  "16_replacement_char_ufffd.txt": "0xb3947ae23cc70ea0"
+}

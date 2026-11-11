@@ -14,7 +14,7 @@ All character classifications are strictly explicit by Unicode code point and UT
   - Whitespace: Space (`0x20`), Horizontal Tab (`0x09`), Line Feed (`0x0A`), Carriage Return (`0x0D`).
   - Control characters: `0x00`–`0x08`, `0x0B`, `0x0C`, `0x0E`–`0x1F`, `0x7F`.
   - Punctuation & symbols: `! " $ % & ' ( ) * + , - . / : ; < = > ? @ [ \ ] ^ _ ` { | } ~`.
-  - Number sign / hashtag (`#`, `0x23`): Special handling (see Section 1.4).
+  - Number sign / hashtag (`#`, `0x23`): Special handling (see Section 2).
 
 ### 1.2 Explicit Non-ASCII Separators
 Only the following specific Unicode code points are treated as non-ASCII separators:
@@ -56,47 +56,45 @@ The following code points are removed transparently from the token stream. They 
   - `U+064B` through `U+065F`: Fathatan, Dammatan, Kasratan, Fatha, Damma, Kasra, Shadda, Sukun, etc. (`D9 8B` through `D9 9F`)
   - `U+0670`: Superscript Alef / Dagger Alef (`D9 B0`)
 
-### 1.4 Non-ASCII Token Characters
-**Every other non-ASCII character** (code point $\ge \text{U+0080}$ not explicitly listed above in Section 1.2 or 1.3) is strictly treated as a valid token character.
+### 1.4 Non-ASCII Token Characters (Including Real U+FFFD)
+**Every other non-ASCII character** (code point $\ge \text{U+0080}$ not explicitly listed in Section 1.2 or 1.3) is strictly treated as a valid token character.
+- **Important:** The Unicode Replacement Character `U+FFFD` (`\ufffd`, encoded in UTF-8 as `EF BF BD`) is NOT a separator; when present as valid UTF-8 in the data, it is treated as a regular token character in both C++ and Python.
 
-### 1.5 Hashtag Rule
-- If the `#` character (`0x23`) appears immediately before a valid token character (ASCII letter/digit or non-ASCII token character), the `#` is retained as the first byte of that token (e.g., `#urdu`, `#100`, `#PDC2026`).
-- If `#` is followed by whitespace, punctuation, an invalid byte, or end of file, it is treated as a normal ASCII separator.
-
----
-
-## 2. Normalization Rules
-
-Tokens are normalized immediately during collection before hashing or table insertion:
-1. **ASCII Case Folding:** Uppercase ASCII letters `A-Z` (`0x41`–`0x5A`) are converted to lowercase `a-z` (`0x61`–`0x7A`).
-2. **Arabic to Urdu Character Mapping:**
-   - Arabic Yeh `U+064A` (`D9 8A`) $\to$ Urdu Yeh `U+06CC` (`DB AC`).
-   - Arabic Kaf `U+0643` (`D9 83`) $\to$ Urdu Kaf `U+06A9` (`DA A9`).
+### 1.5 Strict UTF-8 Validation & Surrogateescape Rule
+- UTF-8 decoding strictly adheres to RFC 3629:
+  - Reject overlong encodings (2-byte $< \text{U+0080}$, 3-byte $< \text{U+0800}$, 4-byte $< \text{U+10000}$).
+  - Reject UTF-16 surrogates (`U+D800` through `U+DFFF`).
+  - Reject out-of-range codepoints ($> \text{U+10FFFF}$, lead bytes `0xF5`–`0xFF`).
+  - Isolated continuation bytes (`0x80`–`0xBF`) or truncated sequences are rejected.
+- Each maximal ill-formed sequence acts as **one separator**.
+- An invalid byte sequence **never consumes a following valid ASCII byte**.
+- **Python Reference Implementation Decoding:** The Python reference implementation must decode with `errors="surrogateescape"`. Python maps invalid bytes `0x80`..`0xFF` to surrogate code points `\udc80`..`\udcff`. The Python code treats any character in `\udc80`..`\udcff` as a separator (never using `errors="replace"`), ensuring real `U+FFFD` (`\ufffd`) in the data remains an authentic token character.
 
 ---
 
-## 3. Strict UTF-8 Validation & Error Handling
+## 2. Token Processing Pipeline (Strict Order of Operations)
 
-UTF-8 decoding strictly adheres to RFC 3629:
-1. **Rejection Criteria:**
-   - **Overlong encodings:** E.g., 2-byte sequences encoding values $< \text{U+0080}$ (`0xC0`–`0xC1`), 3-byte sequences encoding values $< \text{U+0800}$ (`0xE0` with second byte $< \text{0xA0}$), 4-byte sequences encoding values $< \text{U+10000}$ (`0xF0` with second byte $< \text{0x90}$).
-   - **UTF-16 Surrogates:** Code points `U+D800` through `U+DFFF` (`0xED 0xA0 0x80` through `0xED 0xBF 0xBF`).
-   - **Out-of-range codepoints:** Values $> \text{U+10FFFF}$ (lead bytes `0xF5`–`0xFF`, or 4-byte sequences $> \text{U+10FFFF}$).
-   - **Invalid continuation / lead bytes:** Isolated continuation bytes (`0x80`–`0xBF`) or missing continuation bytes.
-2. **Separator Behavior & Non-Consumption:**
-   - Each maximal ill-formed sequence acts as **one separator**.
-   - An invalid byte sequence **never consumes a following valid ASCII byte** (e.g. `\xFFabc` processes `\xFF` as a separator and immediately begins tokenizing `abc`).
+When scanning the text, words are processed in this exact order:
+
+1. **Delimitation:**
+   - Scan characters / byte stream. Separators and invalid byte sequences end the current token and start a delimiter region.
+   - A `#` character (`0x23`) immediately followed by a valid token character (ASCII letter/digit or non-ASCII token character) is tagged as a candidate hashtag. If `#` is followed by whitespace, punctuation, an invalid byte, or EOF, it is treated as a separator.
+2. **Strip Ignorable Code Points:**
+   - Remove all ignorable code points listed in Section 1.3 (ZWNJ, ZWJ, ZWSP, WJ, BOM, LRM, RLM, ALM, Arabic diacritics) transparently without word splitting.
+3. **Normalize:**
+   - Convert uppercase ASCII `A-Z` (`0x41`–`0x5A`) to lowercase `a-z` (`0x61`–`0x7A`).
+   - Map Arabic Yeh `U+064A` (`D9 8A`) $\to$ Urdu Yeh `U+06CC` (`DB AC`).
+   - Map Arabic Kaf `U+0643` (`D9 83`) $\to$ Urdu Kaf `U+06A9` (`DA A9`).
+4. **Apply Hashtag Rule:**
+   - If the candidate hashtag `#` immediately preceded the first token character of this word, the `#` is retained as the first byte of the token.
+5. **Apply 64-Byte Limit on the Result:**
+   - Measure the byte length of the resulting normalized UTF-8 token.
+   - If length is 0 or strictly exceeds 64 bytes (`length > 64`), the token is discarded.
+   - If length is between 1 and 64 bytes inclusive, the token is recorded in the frequency table with a 64-bit counter (`uint64_t`).
 
 ---
 
-## 4. Token Size Limits & Counter Types
-
-- **Maximum Token Length:** Tokens strictly exceeding 64 bytes (measured as normalized UTF-8 bytes) are skipped.
-- **Counter Width:** All token frequency counters are 64-bit unsigned integers (`uint64_t`).
-
----
-
-## 5. Canonical Checksum Specification
+## 3. Canonical Checksum Specification
 
 To deterministically verify table consistency across serial and multi-threaded runs without dumping entire multi-gigabyte tables, the exact checksum is defined as:
 1. **64-bit FNV-1a Hash of Token Bytes:**
@@ -111,7 +109,7 @@ Because addition modulo $2^{64}$ is commutative, the result is completely indepe
 
 ---
 
-## 6. Chunking Boundary Adjustment Specification
+## 4. Chunking Boundary Adjustment Specification
 
 For a file of size $S$ and chunk size $C$:
 - The boundary adjustment function $\text{adjust}(b)$ is defined as:

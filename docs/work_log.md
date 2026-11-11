@@ -37,3 +37,17 @@
 - **Resource Monitoring:** Enforce 12 GB memory cap by polling `VmHWM` in `/proc/<pid>/status`; report `ru_maxrss` via `getrusage` after each run.
 - **Verification Strategy:** Gate 5 correctness matrix runs on 50 MB samples; Gate 5 speedup check runs on the 1 GB Urdu piece.
 - **Viva Defense Hierarchy:** Credit private per-thread hash tables as the primary defense against false sharing, with `alignas(64)` as secondary.
+
+### Phase 3: Reference Implementation & Test Suite (Completed)
+- **Specification:** Refined `docs/counting_rules.md` to define explicit tokenization pipeline order:
+  1. Strip ignorable code points
+  2. Normalize (ASCII lowercase, Yeh U+06CC, Kaf U+06A9)
+  3. Apply hashtag rule (# immediately before token char is retained)
+  4. Apply 64-byte limit on result
+- **Python Reference:** Built `python/reference_counter.py` using `errors="surrogateescape"`, treating surrogates U+DC80..U+DCFF as separators while authentic U+FFFD is treated as a valid token character.
+- **Test Suite:** Built `python/test_runner.py` and 16 comprehensive test fixtures in `tests/`, including `16_replacement_char_ufffd.txt`.
+- **Gate 3 Verification:** 16/16 test fixtures passed with 100% agreement against hand-checked ground truth table.
+- **50 MB Sample Baselines Computed:**
+  - `sample_en.txt`: 8,927,118 tokens, 120,848 unique, checksum `0xfcba47316275e019`
+  - `sample_ur.txt`: 6,218,925 tokens, 121,117 unique, checksum `0x0a6932987cb0432a`
+  - `sample_ur_rom.txt`: 9,171,954 tokens, 555,427 unique, checksum `0x9bd596a5b0165b82`

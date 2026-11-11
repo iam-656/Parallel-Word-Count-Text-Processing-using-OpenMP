@@ -60,5 +60,10 @@
   "15_multibyte_boundary.txt": {
     "پاکستان": 2,
     "#پاکستان": 1
+  },
+  "16_replacement_char_ufffd.txt": {
+    "\ufffd": 2,
+    "apple\ufffdbanana": 1,
+    "cherry\ufffd": 1
   }
 }
