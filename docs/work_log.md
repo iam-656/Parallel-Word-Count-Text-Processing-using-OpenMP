@@ -109,3 +109,10 @@
   - `plot8_e5_cold_vs_warm_cache.png`: Cold cache vs warm cache on 1 GB and 2 GB (E5).
   - `plot9_e6_multilingual_throughput.png`: Multilingual throughput across Urdu, Roman Urdu, and English (E6).
 - **Verification Gate 6:** Complete data across all experiments, all 9 figures generated from CSV data, 100% checksum agreement.
+
+### Phase 7: Academic Research Package & Final Deliverables (Completed)
+- **Academic Project Report:** Authored `docs/project_report.md` (abstract, intro, implementation, setup at FAST-NUCES Karachi Campus, empirical results tied directly to benchmark CSV rows, Amdahl/Karp-Flatt analysis, caching evaluation, limitations, and conclusion).
+- **Code Walkthrough:** Authored `docs/code_walkthrough.md` with complete architectural explanation, `adjust(b)` chunking proofs, OpenMP user-defined reduction, and memory hierarchy.
+- **Viva Defense Preparation:** Authored `docs/viva_preparation.md` with 25 comprehensive technical questions and detailed answers.
+- **Root README:** Authored `README.md` with one-command build, verification, and benchmark execution instructions.
+- **Verification Gate 7:** All deliverables authored, verified, and committed. Checkpoint 3 reached.
