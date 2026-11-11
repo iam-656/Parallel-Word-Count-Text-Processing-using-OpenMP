@@ -1,0 +1,3 @@
+mode,threads,schedule,chunk_size_bytes,file_bytes,read_sec,count_sec,merge_sec,write_sec,total_sec,throughput_mb_s,peak_rss_mb,total_tokens,unique_tokens,checksum
+serial,1,dynamic,16777216,1073741824,0.000037,45.366626,0.000000,0.917441,46.284105,22.12,1132.49,127791181,812048,0x8980f4f8a5ec9631
+serial,1,dynamic,16777216,6122398758,0.000022,187.622456,0.000000,2.696266,190.318744,30.68,1615.54,728606699,2361503,0x6efa5f6a92a9d4fb

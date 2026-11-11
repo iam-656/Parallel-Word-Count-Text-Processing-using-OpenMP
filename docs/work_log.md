@@ -51,3 +51,23 @@
   - `sample_en.txt`: 8,927,118 tokens, 120,848 unique, checksum `0xfcba47316275e019`
   - `sample_ur.txt`: 6,218,925 tokens, 121,117 unique, checksum `0x0a6932987cb0432a`
   - `sample_ur_rom.txt`: 9,171,954 tokens, 555,427 unique, checksum `0x9bd596a5b0165b82`
+
+### Phase 4: High-Performance Serial C++ Engine (Completed)
+- **C++ Modules Implemented:**
+  - `include/types.hpp`: Stage timers, run configuration, and deterministic word ordering.
+  - `include/counting_rules.hpp`: Character classification, RFC 3629 UTF-8 validation, in-place normalization, boundary lookahead.
+  - `include/frequency_table.hpp`: Baseline implementation using `std::unordered_map<std::string, uint64_t>`.
+  - `include/checksum.hpp`: Canonical 64-bit FNV-1a hash mixed with 64-bit word count.
+  - `include/file_reader.hpp` & `src/file_reader.cpp`: Memory-mapped I/O (`mmap`) with `posix_fadvise(POSIX_FADV_DONTNEED)`.
+  - `include/output_writer.hpp` & `src/output_writer.cpp`: Deterministic CSV writer (count desc, raw byte asc).
+  - `include/resource_monitor.hpp`: Polling `VmHWM` in `/proc/<pid>/status` and recording `ru_maxrss`.
+  - `src/main.cpp`: CLI driver for serial mode.
+- **Verification Gate 4:**
+  - Automated verification ([`tests/verify_cpp_engine.py`](file:///home/iamblitz/Documents/PDC_Parallel_Keyword_and_Trend_Analyzer/tests/verify_cpp_engine.py)) executed across all 16 fixtures: **16/16 passed** with bit-identical counts and checksums.
+  - Verified on all three 50 MB sample files:
+    - `sample_en.txt`: checksum `0xfcba47316275e019` (matches reference bit-for-bit, 1.96 s)
+    - `sample_ur.txt`: checksum `0x0a6932987cb0432a` (matches reference bit-for-bit, 1.68 s)
+    - `sample_ur_rom.txt`: checksum `0x9bd596a5b0165b82` (matches reference bit-for-bit, 2.54 s)
+  - Baseline serial benchmarks recorded:
+    - 1 GB Urdu piece: 45.37 s counting, 46.28 s total, 22.12 MB/s, 127.8M tokens, checksum `0x8980f4f8a5ec9631`.
+    - Full 5.70 GB Urdu dataset: 187.62 s counting, 190.32 s total, 30.68 MB/s, 728.6M tokens, checksum `0x6efa5f6a92a9d4fb`. Peak RSS 1.62 GB.
