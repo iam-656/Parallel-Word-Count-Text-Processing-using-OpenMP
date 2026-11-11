@@ -15,6 +15,7 @@ Protocol Features:
 
 import os
 import sys
+import re
 import csv
 import subprocess
 import time
@@ -77,14 +78,13 @@ def parse_run_output(output_text):
         elif "Throughput:" in line:
             data["throughput_mb_s"] = float(line.split(":")[1].replace("MB/s", "").strip())
         elif "Peak RSS (getrusage):" in line:
-            # e.g. 1330.69 MB (1362624 KB)
-            parts = line.split("(")
-            if len(parts) > 1:
-                data["peak_rss_kb"] = int(parts[1].replace("KB)", "").strip())
+            m = re.search(r"\((\d+)\s*KB\)", line)
+            if m:
+                data["peak_rss_kb"] = int(m.group(1))
         elif "Peak VmHWM (/proc):" in line:
-            parts = line.split("(")
-            if len(parts) > 1:
-                data["peak_vm_hwm_kb"] = int(parts[1].replace("KB)", "").strip())
+            m = re.search(r"\((\d+)\s*KB\)", line)
+            if m:
+                data["peak_vm_hwm_kb"] = int(m.group(1))
         elif "Canonical Checksum:" in line:
             data["checksum"] = line.split(":")[1].strip().lower()
     return data
