@@ -71,3 +71,20 @@
   - Baseline serial benchmarks recorded:
     - 1 GB Urdu piece: 45.37 s counting, 46.28 s total, 22.12 MB/s, 127.8M tokens, checksum `0x8980f4f8a5ec9631`.
     - Full 5.70 GB Urdu dataset: 187.62 s counting, 190.32 s total, 30.68 MB/s, 728.6M tokens, checksum `0x6efa5f6a92a9d4fb`. Peak RSS 1.62 GB.
+
+### Phase 5: Parallel OpenMP Implementations (User Reduction & Critical) (Completed)
+- **Parallel Chunking & Boundary Adjustment:**
+  - Implemented `include/chunking.hpp` with nominal chunk size $C$ and `adjust(b)` advancing to the first $p \ge b$ where `byte[p-1]` is ASCII whitespace (`0x20`, `0x09`, `0x0A`, `0x0D`), returning `file_size` if $b \ge \text{size}$ or no whitespace follows.
+- **OpenMP User-Defined Reduction:**
+  - Declared `#pragma omp declare reduction(TableMerge : pdc::FrequencyTable : omp_out.merge(omp_in)) initializer(omp_priv = pdc::FrequencyTable())`.
+  - OpenMP loop iterations over chunks with chunk parameter 1 (`schedule(runtime)` configured via `omp_set_schedule(kind, 1)`).
+  - Private per-thread hash tables credited as primary defense against false sharing; secondary defense with `alignas(64)` per-thread finish timers (`ThreadTimer`).
+  - Stage timings cleanly isolated: `timers.count_time` records time until last thread finishes chunks; `timers.merge_time` records time from last thread finish until end of parallel reduction region.
+- **Contention Demonstration (Critical Mode):**
+  - Implemented `tokenize_chunk_critical` updating a single shared table inside `#pragma omp critical(critical_table_lock)`.
+- **Verification Gate 5 (All Passed):**
+  - Cache eviction verified: `posix_fadvise(POSIX_FADV_DONTNEED)` evicted 100% of pages (resident pages dropped from 12,802 to 0 confirmed via `fincore`).
+  - Full 135-combination matrix tested on 50 MB sample files across 3 languages $\times$ 5 thread counts (1, 2, 3, 4, 8) $\times$ 3 chunk sizes (64KB, 1MB, 16MB) $\times$ 3 schedules (static, dynamic, guided): **135/135 passed** with exact ground-truth checksum matches.
+  - Critical mode verified on sample: exact ground truth checksum match (`0xfcba47316275e019`).
+  - Gate 5 Speedup on 1 GB Urdu piece: Serial 31.65 s vs Parallel 2 Threads 17.08 s $\to$ **1.85x speedup ($> 1.0\times$)** with bit-identical checksum (`0x8980f4f8a5ec9631`).
+  - ASan + UBSan build (`bin/wordcount_san`) compiled and verified on all fixtures and samples with 0 errors.

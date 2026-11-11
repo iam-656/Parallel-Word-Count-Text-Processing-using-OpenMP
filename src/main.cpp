@@ -7,12 +7,21 @@
 
 #include "types.hpp"
 #include "file_reader.hpp"
+#include "chunking.hpp"
 #include "tokenizer.hpp"
 #include "frequency_table.hpp"
 #include "output_writer.hpp"
 #include "resource_monitor.hpp"
 
+// OpenMP User-Defined Reduction combining per-thread FrequencyTables
+#pragma omp declare reduction(TableMerge : pdc::FrequencyTable : omp_out.merge(omp_in)) \
+    initializer(omp_priv = pdc::FrequencyTable())
+
 namespace pdc {
+
+struct alignas(64) ThreadTimer {
+    double finish_time = 0.0;
+};
 
 void print_usage(const char* prog_name) {
     std::cout << "Usage: " << prog_name << " [options]\n"
@@ -86,7 +95,7 @@ int main(int argc, char* argv[]) {
     pdc::StageTimers timers;
     double t_total_start = omp_get_wtime();
 
-    // Stage 1: Reading / Memory Mapping
+    // Stage 1: Reading / Memory Mapping & Chunk Generation
     double t_read_start = omp_get_wtime();
     std::vector<pdc::MappedFile> mapped_files;
     size_t total_input_bytes = 0;
@@ -100,30 +109,84 @@ int main(int argc, char* argv[]) {
         total_input_bytes += mf.size();
         mapped_files.push_back(std::move(mf));
     }
+
+    // Partition input files into independent chunks
+    std::vector<pdc::Chunk> chunks;
+    for (const auto& mf : mapped_files) {
+        if (mf.size() > 0) {
+            auto file_chunks = pdc::create_file_chunks(mf.data(), mf.size(), config.chunk_size);
+            chunks.insert(chunks.end(), file_chunks.begin(), file_chunks.end());
+        }
+    }
     double t_read_end = omp_get_wtime();
     timers.read_time = t_read_end - t_read_start;
 
-    // Stage 2: Tokenizing & Counting
+    // Stage 2: Tokenizing, Counting & Merging
     pdc::FrequencyTable global_table;
-    double t_count_start = omp_get_wtime();
+    const size_t total_chunks = chunks.size();
+
+    // Configure OpenMP runtime schedule (with chunk parameter 1)
+    omp_sched_t sched = omp_sched_dynamic;
+    if (config.schedule_kind == "static") {
+        sched = omp_sched_static;
+    } else if (config.schedule_kind == "guided") {
+        sched = omp_sched_guided;
+    } else {
+        sched = omp_sched_dynamic;
+    }
+    omp_set_schedule(sched, 1);
 
     if (config.mode == "serial") {
-        for (const auto& mf : mapped_files) {
-            if (mf.size() > 0) {
-                pdc::tokenize_chunk(mf.data(), mf.data() + mf.size(), global_table);
+        omp_set_num_threads(1);
+        double t_count_start = omp_get_wtime();
+        for (size_t i = 0; i < total_chunks; ++i) {
+            pdc::tokenize_chunk(chunks[i].start, chunks[i].end, global_table);
+        }
+        double t_count_end = omp_get_wtime();
+        timers.count_time = t_count_end - t_count_start;
+        timers.merge_time = 0.0;
+    } else if (config.mode == "critical") {
+        omp_set_num_threads(config.num_threads);
+        double t_count_start = omp_get_wtime();
+        #pragma omp parallel for schedule(runtime)
+        for (size_t i = 0; i < total_chunks; ++i) {
+            pdc::tokenize_chunk_critical(chunks[i].start, chunks[i].end, global_table);
+        }
+        double t_count_end = omp_get_wtime();
+        timers.count_time = t_count_end - t_count_start;
+        timers.merge_time = 0.0;
+    } else if (config.mode == "reduction") {
+        omp_set_num_threads(config.num_threads);
+        std::vector<pdc::ThreadTimer> thread_finish(config.num_threads);
+
+        double t_count_start = omp_get_wtime();
+        for (int t = 0; t < config.num_threads; ++t) {
+            thread_finish[t].finish_time = t_count_start;
+        }
+
+        #pragma omp parallel for schedule(runtime) reduction(TableMerge : global_table)
+        for (size_t i = 0; i < total_chunks; ++i) {
+            pdc::tokenize_chunk(chunks[i].start, chunks[i].end, global_table);
+            thread_finish[omp_get_thread_num()].finish_time = omp_get_wtime();
+        }
+        double t_parallel_end = omp_get_wtime();
+
+        double last_finish_time = t_count_start;
+        for (int t = 0; t < config.num_threads; ++t) {
+            if (thread_finish[t].finish_time > last_finish_time) {
+                last_finish_time = thread_finish[t].finish_time;
             }
+        }
+
+        timers.count_time = last_finish_time - t_count_start;
+        timers.merge_time = t_parallel_end - last_finish_time;
+        if (timers.merge_time < 0.0) {
+            timers.merge_time = 0.0;
         }
     } else {
-        std::cerr << "[-] Mode '" << config.mode << "' will be enabled in Phase 5. Running serial." << std::endl;
-        for (const auto& mf : mapped_files) {
-            if (mf.size() > 0) {
-                pdc::tokenize_chunk(mf.data(), mf.data() + mf.size(), global_table);
-            }
-        }
+        std::cerr << "[-] Unknown mode: " << config.mode << " (must be serial, critical, or reduction)" << std::endl;
+        return 1;
     }
-    double t_count_end = omp_get_wtime();
-    timers.count_time = t_count_end - t_count_start;
-    timers.merge_time = 0.0; // In serial mode, merge time is 0
 
     // Stage 3: Sorting & Output Writing
     double t_write_start = omp_get_wtime();
@@ -159,7 +222,8 @@ int main(int argc, char* argv[]) {
     std::cout << "\n======================================================================\n"
               << "           PDC #23 — PARALLEL WORD COUNT EXECUTION SUMMARY\n"
               << "======================================================================\n"
-              << "Mode:                 " << config.mode << "\n"
+              << "Mode:                 " << config.mode << " (Threads: " << config.num_threads 
+              << ", Sched: " << config.schedule_kind << ", Chunks: " << total_chunks << ")\n"
               << "Input Size:           " << (total_input_bytes / (1024.0 * 1024.0)) << " MB (" << total_input_bytes << " bytes)\n"
               << "Total Tokens:         " << total_tokens << "\n"
               << "Unique Tokens:        " << unique_tokens << "\n"

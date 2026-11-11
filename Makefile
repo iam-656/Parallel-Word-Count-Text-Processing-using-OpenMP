@@ -1,4 +1,4 @@
-CXX ?= g++
+wCXX ?= g++
 CXXFLAGS_COMMON = -std=c++17 -Wall -Wextra -fopenmp -Iinclude
 CXXFLAGS_RELEASE = $(CXXFLAGS_COMMON) -O3
 CXXFLAGS_SAN = $(CXXFLAGS_COMMON) -O1 -g -fsanitize=address,undefined
