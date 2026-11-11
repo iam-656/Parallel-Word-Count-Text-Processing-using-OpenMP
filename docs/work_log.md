@@ -88,3 +88,24 @@
   - Critical mode verified on sample: exact ground truth checksum match (`0xfcba47316275e019`).
   - Gate 5 Speedup on 1 GB Urdu piece: Serial 31.65 s vs Parallel 2 Threads 17.08 s $\to$ **1.85x speedup ($> 1.0\times$)** with bit-identical checksum (`0x8980f4f8a5ec9631`).
   - ASan + UBSan build (`bin/wordcount_san`) compiled and verified on all fixtures and samples with 0 errors.
+
+### Phase 6: Benchmarks & Empirical Analysis (Completed)
+- **Calibration & Checkpoint 2:**
+  - Primary Size calibrated to 2048 MB Urdu prefix (serial baseline: 82.33 s, meeting the >= 60 s threshold).
+  - CPU governor locked to `performance` on all cores; power profile and AC power verified online.
+- **Benchmark Execution (E1 to E6):**
+  - Executed all 223 benchmark runs across E1 through E6 with `OMP_PROC_BIND=close`, `OMP_PLACES=threads`, 1 discarded warm-up + 5/3 timed interleaved repetitions, and 15-minute timeout.
+  - Logged all data points to `results/benchmark_master.csv` with 19 required columns.
+  - Verified 100% bit-identical checksums across all parallel runs and thread counts.
+  - Peak memory usage remained under 2.57 GB (strictly bounded within the 12 GB cap).
+- **Publication Plots Generated (9 Figures):**
+  - `plot1_execution_time_vs_threads.png`: Execution time vs threads (E1).
+  - `plot2_speedup_vs_threads.png`: Speedup vs ideal linear scaling (E1).
+  - `plot3_efficiency_vs_threads.png`: Parallel efficiency highlighting 2 physical cores vs Hyper-Threading (E1).
+  - `plot4_time_breakdown_stacked.png`: Stacked stage time breakdown (E1).
+  - `plot5_e2_implementation_comparison.png`: Serial vs Critical contention vs Reduction (E2).
+  - `plot6_e3_schedule_chunk_comparison.png`: Static vs Dynamic vs Guided across chunk sizes (E3).
+  - `plot7_e4_input_size_scaling.png`: Scaling from 256 MB to 5.7 GB (E4).
+  - `plot8_e5_cold_vs_warm_cache.png`: Cold cache vs warm cache on 1 GB and 2 GB (E5).
+  - `plot9_e6_multilingual_throughput.png`: Multilingual throughput across Urdu, Roman Urdu, and English (E6).
+- **Verification Gate 6:** Complete data across all experiments, all 9 figures generated from CSV data, 100% checksum agreement.
