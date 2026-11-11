@@ -33,3 +33,7 @@ results/*.tmp
 .DS_Store
 *.swp
 *~
+
+results/*_top.csv
+results/*_dump.csv
+results/cpp_test/

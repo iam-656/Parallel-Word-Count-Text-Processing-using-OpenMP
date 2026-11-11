@@ -34,3 +34,7 @@ Filesystem      Size  Used Avail Use% Mounted on
 - **OpenMP Environment Defaults:**
   - `OMP_PROC_BIND=close`
   - `OMP_PLACES=threads`
+
+- **AC Power State:** AC Adapter Online (`/sys/class/power_supply/*/online = 1`)
+- **Primary Size Benchmark Input:** 2048 MB (2 GB prefix of `data/decompressed/ur.txt`, measured serial runtime: 82.33 s, exceeding the 60-second threshold per Section 8)
+- **1 GB Urdu Calibration:** Measured serial runtime 31.65 s, parallel reduction (2 threads) 17.08 s (Speedup: 1.85x)
