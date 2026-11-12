@@ -37,3 +37,7 @@ results/*.tmp
 results/*_top.csv
 results/*_dump.csv
 results/cpp_test/
+
+# Office lock files
+.~lock.*
+*.~lock.*

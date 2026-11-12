@@ -3,7 +3,7 @@
 **Project:** Parallel Word Count / Text Processing using OpenMP (Project #23)  
 **Institution:** FAST-NUCES Karachi Campus  
 **Course:** Parallel and Distributed Computing (CS 3006)  
-**Authors:** PDC Project Team (Partner: Ali Mahdi)  
+**Authors:** PDC Project Team (Imam Ali Mahdi, Hafiz Umer Ahmed, Naveed Ahmed)  
 **Target Hardware:** HP EliteBook 820 G4 (Intel Core i5-7300U, 2 Physical Cores, 4 Logical Threads, 16 GB RAM)
 
 ---

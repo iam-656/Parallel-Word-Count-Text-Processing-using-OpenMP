@@ -2,7 +2,7 @@
 
 **Course:** Parallel and Distributed Computing (CS 3006)  
 **Institution:** FAST-NUCES Karachi Campus  
-**Authors:** PDC Project Team (Partner: Ali Mahdi)  
+**Authors:** PDC Project Team (Imam Ali Mahdi, Hafiz Umer Ahmed, Naveed Ahmed)  
 **Academic Term:** Fall 2026  
 **Experimental Platform:** HP EliteBook 820 G4, Intel Core i5-7300U (2 Physical Cores, 4 Threads via Hyper-Threading, 16 GB DDR4 RAM, NVMe SSD)
 
