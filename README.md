@@ -2,7 +2,7 @@
 
 **Course:** Parallel and Distributed Computing (CS 3006)  
 **Institution:** FAST-NUCES Karachi Campus  
-**Project:** #23 — Parallel Word Count & Multilingual Text Processing  
+**Project:** Parallel Word Count & Multilingual Text Processing  
 **Authors:** Imam Ali Mahdi, Hafiz Umer Ahmed, Naveed Ahmed  
 **Target Environment:** Linux x86_64, GCC 16+ with OpenMP 4.5+
 
