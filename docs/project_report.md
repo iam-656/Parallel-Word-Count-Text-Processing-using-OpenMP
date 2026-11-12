@@ -144,13 +144,13 @@ The primary size was calibrated to 2048 MB of the Urdu dataset (serial execution
 
 *Note: All parallel runs produced the exact canonical checksum `0x6ddb4e5ac73d52fd` matching serial bit-for-bit.*
 
-![Figure 1: Execution Time vs Threads](results/plot1_execution_time_vs_threads.png)  
+![Figure 1: Execution Time vs Threads](../results/plot1_execution_time_vs_threads.png)  
 *Figure 1: Execution Time vs. Thread Count on 2048 MB Urdu Primary Dataset. Error bars indicate min and max times across 5 interleaved repetitions. The serial baseline is shown as a dashed red line.*
 
-![Figure 2: Speedup vs Threads](results/plot2_speedup_vs_threads.png)  
+![Figure 2: Speedup vs Threads](../results/plot2_speedup_vs_threads.png)  
 *Figure 2: Measured Speedup ($T_{serial} / T_{parallel}$) compared against the ideal linear speedup line. The physical core boundary (2 cores) is highlighted.*
 
-![Figure 3: Efficiency vs Threads](results/plot3_efficiency_vs_threads.png)  
+![Figure 3: Efficiency vs Threads](../results/plot3_efficiency_vs_threads.png)  
 *Figure 3: Parallel Efficiency ($S / p$) as a function of thread count. Efficiency remains above 77% up to 3 threads, dropping to 63% at 4 threads and decaying beyond 4 threads due to core saturation.*
 
 #### Analysis of E1 Scaling:
@@ -159,7 +159,7 @@ The primary size was calibrated to 2048 MB of the Urdu dataset (serial execution
 3. **Oversubscription ($p = 6, 8$):** Beyond 4 threads, speedup saturates and slightly regresses ($2.52\times \to 2.39\times$). With only 4 logical execution pipelines, 6 and 8 threads trigger operating system preemption, register state swapping, and L3 cache thrashing.
 4. **Karp-Flatt Metric Analysis:** The observed Karp-Flatt serial fraction is $e \approx 0.176$ at 2 threads and $e \approx 0.196$ at 4 threads. The modest increase demonstrates that speedup saturation is primarily governed by the physical 2-core hardware limit rather than software synchronization bottlenecks.
 
-![Figure 4: Stacked Stage Time Breakdown](results/plot4_time_breakdown_stacked.png)  
+![Figure 4: Stacked Stage Time Breakdown](../results/plot4_time_breakdown_stacked.png)  
 *Figure 4: Stacked stage time breakdown across thread counts. While Tokenize & Count scales aggressively from 47.65 s to 17.35 s, serial Read/Mmap (~0.4 s) and Output Writing (~1.2 s) remain constant.*
 
 ---
@@ -175,7 +175,7 @@ We evaluate the performance of `serial`, `critical`, and `reduction` on a 256 MB
 | **Critical** | 2 | 5.42 | 5.14 | 47.2 | $2.45\times$ slower |
 | **Critical** | 4 | **7.47** | **7.18** | **34.3** | **$3.38\times$ slower** |
 
-![Figure 5: Implementation Comparison](results/plot5_e2_implementation_comparison.png)  
+![Figure 5: Implementation Comparison](../results/plot5_e2_implementation_comparison.png)  
 *Figure 5: Execution time comparison between Serial, Critical, and Reduction on 256 MB Urdu. Critical section synchronization demonstrates severe negative scaling.*
 
 #### Analysis of E2 Contention:
@@ -204,7 +204,7 @@ We evaluate `static`, `dynamic`, and `guided` schedules with chunk sizes of 1 MB
 | **Guided** | 16 MB | 13.30 | 8.86 |
 | **Guided** | 64 MB | 13.25 | 8.59 |
 
-![Figure 6: Schedule and Chunk Size Comparison](results/plot6_e3_schedule_chunk_comparison.png)  
+![Figure 6: Schedule and Chunk Size Comparison](../results/plot6_e3_schedule_chunk_comparison.png)  
 *Figure 6: Execution time across OpenMP schedules (Static, Dynamic, Guided) and nominal chunk sizes (1, 4, 16, 64 MB) on 1024 MB Urdu.*
 
 #### Analysis of E3 Schedules:
@@ -226,7 +226,7 @@ We evaluate dataset prefixes of 256 MB, 512 MB, 1024 MB, 2048 MB, 4096 MB, and t
 | **4096** | 98.06 | 38.31 | 2.56x | 106.9 |
 | **5700 (Full)** | 138.32 | 56.93 | 2.43x | 100.1 |
 
-![Figure 7: Input Size Scaling](results/plot7_e4_input_size_scaling.png)  
+![Figure 7: Input Size Scaling](../results/plot7_e4_input_size_scaling.png)  
 *Figure 7: Execution time scaling across dataset sizes from 256 MB to 5.7 GB for Serial (1 Thread) and Parallel Reduction (4 Threads).*
 
 #### Analysis of E4 Scaling:
@@ -247,7 +247,7 @@ To quantify the impact of Linux page caching and storage subsystem latency, we e
 | **2048 MB** | 2 | 31.94 | 26.34 | +5.61 s | +21.3% |
 | **2048 MB** | 4 | 19.13 | 16.81 | +2.31 s | +13.8% |
 
-![Figure 8: Cold vs Warm Cache Performance](results/plot8_e5_cold_vs_warm_cache.png)  
+![Figure 8: Cold vs Warm Cache Performance](../results/plot8_e5_cold_vs_warm_cache.png)  
 *Figure 8: Execution time comparison between Cold Cache and Warm Cache on 1024 MB and 2048 MB datasets across 1, 2, and 4 threads.*
 
 #### Analysis of E5 Caching:
@@ -269,7 +269,7 @@ We evaluate all three full corpora at 1 and 4 threads:
 
 *Note: All parallel runs produced bit-identical checksums to serial: Urdu (`0x6efa5f6a92a9d4fb`), Roman Urdu (`0x7471fb18a72602fd`), English (`0x08c8110cec9a877f`).*
 
-![Figure 9: Multilingual Throughput](results/plot9_e6_multilingual_throughput.png)  
+![Figure 9: Multilingual Throughput](../results/plot9_e6_multilingual_throughput.png)  
 *Figure 9: Multilingual processing throughput (MB/s) for Serial and Parallel Reduction across full Urdu, Roman Urdu, and English corpora.*
 
 #### Analysis of E6 Multilingual Performance:
